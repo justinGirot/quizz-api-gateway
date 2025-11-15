@@ -1,0 +1,230 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+
+# Security Headers Configuration
+# Adds security headers to all responses to protect against common web vulnerabilities
+security:
+  headers:
+    # Enable or disable security headers
+    enabled: true
+
+    # X-Content-Type-Options: Prevents MIME type sniffing
+    content-type-options: nosniff
+
+    # X-Frame-Options: Prevents clickjacking attacks
+    # Options: DENY, SAMEORIGIN, ALLOW-FROM uri
+    frame-options: DENY
+
+    # X-XSS-Protection: Enables XSS filter in browsers
+    xss-protection: "1; mode=block"
+
+    # Strict-Transport-Security: Forces HTTPS connections
+    # IMPORTANT: Only enable hsts-enabled in production when using HTTPS
+    hsts-enabled: false  # Set to true in production with HTTPS
+    strict-transport-security: "max-age=31536000; includeSubDomains"
+
+    # Content-Security-Policy: Advanced security policy (optional)
+    # Enable for stricter security, but may require frontend adjustments
+    csp-enabled: false
+    content-security-policy: "default-src 'self'"
+
+    # Referrer-Policy: Controls referrer information sent with requests
+    referrer-policy: "strict-origin-when-cross-origin"
+
+    # Permissions-Policy: Controls browser features and APIs
+    permissions-policy: "geolocation=(), microphone=(), camera=()"
+
+# CORS Configuration
+# Configure allowed origins for cross-origin requests
+cors:
+  # Use allowedOriginPatterns for development (supports wildcards)
+  # This allows any port on localhost (e.g., :5173, :5174, :3000)
+  allowed-origin-patterns:
+    - "http://localhost:[*]"
+    - "http://127.0.0.1:[*]"
+
+  # Use allowedOrigins for production (exact matches only)
+  # Uncomment and specify exact origins in production
+  # allowed-origins:
+  #   - "https://app.example.com"
+  #   - "https://www.example.com"
+
+  # Allow credentials (cookies, authorization headers)
+  allow-credentials: true
+
+  # Cache preflight requests for 1 hour (in seconds)
+  max-age: 3600
+
+# Gateway Request Limits Configuration
+# Protects against memory exhaustion and DoS attacks from large requests
+gateway:
+  request-limits:
+    # Maximum request size (default: 10MB)
+    # Requests larger than this will be rejected with 413 Payload Too Large
+    max-request-size: 10485760  # 10MB in bytes
+
+    # Maximum size for body logging (default: 1MB)
+    # Requests larger than this will only have metadata logged (not body content)
+    max-loggable-size: 1048576  # 1MB in bytes
+
+    # Maximum size for caching request/response bodies (default: 1MB)
+    # Bodies larger than this won't be cached in memory
+    max-cache-size: 1048576  # 1MB in bytes
+
+    # Enable request/response body caching (default: true)
+    # Set to false to disable all body caching and reduce memory usage
+    enable-body-caching: true
+
+    # Log request body content (default: false)
+    # Only applies to small requests (< max-loggable-size)
+    log-request-body: false
+
+    # Log response body content (default: false)
+    # Only applies to small responses (< max-loggable-size)
+    log-response-body: false
+
+    # Content types that should always be logged/cached regardless of size
+    # Useful for JSON APIs where you want to log all requests
+    always-log-content-types:
+      - "application/json"
+      - "application/xml"
+      - "text/plain"
+
+    # Content types that should never be cached/logged
+    # Useful for binary data like images, videos, files
+    never-log-content-types:
+      - "multipart/form-data"
+      - "application/octet-stream"
+      - "image/"
+      - "video/"
+      - "audio/"
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_SERVER_URL:http://localhost:8761/eureka/}
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${random.value}
+
+# Resilience4j Circuit Breaker Configuration
+# Protects backend services with circuit breaker pattern and automatic fallback
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        # Circuit breaker opens when 50% of calls fail
+        failure-rate-threshold: 50
+
+        # Circuit breaker opens when 50% of calls are slow
+        slow-call-rate-threshold: 50
+
+        # Calls taking longer than 2 seconds are considered slow
+        slow-call-duration-threshold: 2s
+
+        # Number of calls to record in the sliding window
+        sliding-window-size: 10
+
+        # Minimum number of calls before circuit breaker can trip
+        minimum-number-of-calls: 5
+
+        # Time circuit stays open before transitioning to half-open
+        wait-duration-in-open-state: 30s
+
+        # Number of permitted calls in half-open state
+        permitted-number-of-calls-in-half-open-state: 3
+
+        # Automatically transition from open to half-open
+        automatic-transition-from-open-to-half-open-enabled: true
+
+        # Record all exceptions as failures except these
+        ignore-exceptions:
+          - java.lang.IllegalArgumentException
+
+    instances:
+      # Auth Service Circuit Breaker
+      authServiceCircuitBreaker:
+        base-config: default
+        register-health-indicator: true
+
+      # Question Service Circuit Breaker
+      questionServiceCircuitBreaker:
+        base-config: default
+        register-health-indicator: true
+
+      # Quiz Service Circuit Breaker
+      quizServiceCircuitBreaker:
+        base-config: default
+        register-health-indicator: true
+
+  timelimiter:
+    configs:
+      default:
+        # Maximum time to wait for a response
+        timeout-duration: 3s
+    instances:
+      authServiceCircuitBreaker:
+        base-config: default
+      questionServiceCircuitBreaker:
+        base-config: default
+      quizServiceCircuitBreaker:
+        base-config: default
+
+  # Retry Configuration (optional - can retry before circuit opens)
+  retry:
+    configs:
+      default:
+        # Maximum retry attempts
+        max-attempts: 3
+
+        # Wait duration between retries
+        wait-duration: 500ms
+
+        # Enable exponential backoff
+        enable-exponential-backoff: true
+
+        # Exponential backoff multiplier
+        exponential-backoff-multiplier: 2
+
+        # Retry on these exceptions
+        retry-exceptions:
+          - java.io.IOException
+          - java.util.concurrent.TimeoutException
+
+    instances:
+      authServiceCircuitBreaker:
+        base-config: default
+      questionServiceCircuitBreaker:
+        base-config: default
+      quizServiceCircuitBreaker:
+        base-config: default
+
+management:
+  endpoints:
+    web:
+      exposure:
+        # Expose circuit breaker and resilience4j endpoints
+        include: health,info,circuitbreakers,circuitbreakerevents
+  endpoint:
+    health:
+      show-details: always
+  health:
+    circuitbreakers:
+      enabled: true
+  # Enable metrics for circuit breakers
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG
+    com.quizz.apigateway: INFO
+    com.netflix.eureka: INFO
+    com.netflix.discovery: INFO
