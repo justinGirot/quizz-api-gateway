@@ -69,14 +69,114 @@ eureka:
     prefer-ip-address: true
     instance-id: ${spring.application.name}:${random.value}
 
+# Resilience4j Circuit Breaker Configuration
+# Protects backend services with circuit breaker pattern and automatic fallback
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        # Circuit breaker opens when 50% of calls fail
+        failure-rate-threshold: 50
+
+        # Circuit breaker opens when 50% of calls are slow
+        slow-call-rate-threshold: 50
+
+        # Calls taking longer than 2 seconds are considered slow
+        slow-call-duration-threshold: 2s
+
+        # Number of calls to record in the sliding window
+        sliding-window-size: 10
+
+        # Minimum number of calls before circuit breaker can trip
+        minimum-number-of-calls: 5
+
+        # Time circuit stays open before transitioning to half-open
+        wait-duration-in-open-state: 30s
+
+        # Number of permitted calls in half-open state
+        permitted-number-of-calls-in-half-open-state: 3
+
+        # Automatically transition from open to half-open
+        automatic-transition-from-open-to-half-open-enabled: true
+
+        # Record all exceptions as failures except these
+        ignore-exceptions:
+          - java.lang.IllegalArgumentException
+
+    instances:
+      # Auth Service Circuit Breaker
+      authServiceCircuitBreaker:
+        base-config: default
+        register-health-indicator: true
+
+      # Question Service Circuit Breaker
+      questionServiceCircuitBreaker:
+        base-config: default
+        register-health-indicator: true
+
+      # Quiz Service Circuit Breaker
+      quizServiceCircuitBreaker:
+        base-config: default
+        register-health-indicator: true
+
+  timelimiter:
+    configs:
+      default:
+        # Maximum time to wait for a response
+        timeout-duration: 3s
+    instances:
+      authServiceCircuitBreaker:
+        base-config: default
+      questionServiceCircuitBreaker:
+        base-config: default
+      quizServiceCircuitBreaker:
+        base-config: default
+
+  # Retry Configuration (optional - can retry before circuit opens)
+  retry:
+    configs:
+      default:
+        # Maximum retry attempts
+        max-attempts: 3
+
+        # Wait duration between retries
+        wait-duration: 500ms
+
+        # Enable exponential backoff
+        enable-exponential-backoff: true
+
+        # Exponential backoff multiplier
+        exponential-backoff-multiplier: 2
+
+        # Retry on these exceptions
+        retry-exceptions:
+          - java.io.IOException
+          - java.util.concurrent.TimeoutException
+
+    instances:
+      authServiceCircuitBreaker:
+        base-config: default
+      questionServiceCircuitBreaker:
+        base-config: default
+      quizServiceCircuitBreaker:
+        base-config: default
+
 management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        # Expose circuit breaker and resilience4j endpoints
+        include: health,info,circuitbreakers,circuitbreakerevents
   endpoint:
     health:
       show-details: always
+  health:
+    circuitbreakers:
+      enabled: true
+  # Enable metrics for circuit breakers
+  metrics:
+    tags:
+      application: ${spring.application.name}
 
 logging:
   level:
