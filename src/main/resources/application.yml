@@ -5,6 +5,39 @@ spring:
   application:
     name: api-gateway
 
+# Security Headers Configuration
+# Adds security headers to all responses to protect against common web vulnerabilities
+security:
+  headers:
+    # Enable or disable security headers
+    enabled: true
+
+    # X-Content-Type-Options: Prevents MIME type sniffing
+    content-type-options: nosniff
+
+    # X-Frame-Options: Prevents clickjacking attacks
+    # Options: DENY, SAMEORIGIN, ALLOW-FROM uri
+    frame-options: DENY
+
+    # X-XSS-Protection: Enables XSS filter in browsers
+    xss-protection: "1; mode=block"
+
+    # Strict-Transport-Security: Forces HTTPS connections
+    # IMPORTANT: Only enable hsts-enabled in production when using HTTPS
+    hsts-enabled: false  # Set to true in production with HTTPS
+    strict-transport-security: "max-age=31536000; includeSubDomains"
+
+    # Content-Security-Policy: Advanced security policy (optional)
+    # Enable for stricter security, but may require frontend adjustments
+    csp-enabled: false
+    content-security-policy: "default-src 'self'"
+
+    # Referrer-Policy: Controls referrer information sent with requests
+    referrer-policy: "strict-origin-when-cross-origin"
+
+    # Permissions-Policy: Controls browser features and APIs
+    permissions-policy: "geolocation=(), microphone=(), camera=()"
+
 # CORS Configuration
 # Configure allowed origins for cross-origin requests
 cors:
