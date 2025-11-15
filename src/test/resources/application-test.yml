@@ -1,0 +1,22 @@
+spring:
+  application:
+    name: api-gateway-test
+
+  cloud:
+    gateway:
+      mvc:
+        routes:
+          - id: auth-service
+            uri: http://localhost:8081
+            predicates:
+              - Path=/api/auth/**
+            filters:
+              - StripPrefix=0
+
+server:
+  port: 0  # Random port for tests
+
+logging:
+  level:
+    root: WARN
+    com.quizz.apigateway: INFO
