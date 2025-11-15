@@ -15,21 +15,21 @@ public class GatewayConfig {
     @Bean
     public RouterFunction<ServerResponse> authServiceRoute() {
         return route("auth_service")
-                .route(path("/api/auth/**"), http("http://localhost:8081"))
+                .route(path("/api/auth/**"), http("lb://auth-service"))
                 .build();
     }
 
     @Bean
     public RouterFunction<ServerResponse> questionServiceRoute() {
         return route("question_service")
-                .route(path("/api/questions/**"), http("http://localhost:8082"))
+                .route(path("/api/questions/**"), http("lb://question-service"))
                 .build();
     }
 
     @Bean
     public RouterFunction<ServerResponse> quizServiceRoute() {
         return route("quiz_service")
-                .route(path("/api/quizzes/**"), http("http://localhost:8083"))
+                .route(path("/api/quizzes/**"), http("lb://quiz-service"))
                 .build();
     }
 }
