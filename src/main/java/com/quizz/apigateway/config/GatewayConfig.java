@@ -62,6 +62,24 @@ public class GatewayConfig {
     }
 
     /**
+     * Category Service route with circuit breaker
+     * Routes to question-service as categories are managed there
+     * Target URI and all parameters configured via properties
+     */
+    @Bean
+    public RouterFunction<ServerResponse> categoryServiceRoute() {
+        RouteProperties.ServiceRoute config = routeProperties.getCategoryService();
+        String targetUri = config.getTargetUri(routeProperties.isUseServiceDiscovery());
+
+        log.info("Configuring Category Service route: {} -> {}", config.getPath(), targetUri);
+
+        return route("category_service")
+                .route(path(config.getPath()), http(targetUri))
+                .filter(circuitBreaker(config.getCircuitBreakerName(), config.getFallbackPath()))
+                .build();
+    }
+
+    /**
      * Quiz Service route with circuit breaker
      * Target URI and all parameters configured via properties
      */

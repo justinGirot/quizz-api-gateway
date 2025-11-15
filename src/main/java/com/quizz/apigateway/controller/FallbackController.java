@@ -52,6 +52,23 @@ public class FallbackController {
     }
 
     /**
+     * Fallback for Category Service
+     * Routes to question-service backend
+     */
+    @GetMapping("/categories")
+    @PostMapping("/categories")
+    @PutMapping("/categories")
+    @DeleteMapping("/categories")
+    @PatchMapping("/categories")
+    public ResponseEntity<Map<String, Object>> categoryServiceFallback() {
+        log.warn("Category service is currently unavailable - circuit breaker activated");
+        return createFallbackResponse(
+            "Category Service",
+            "The category service is temporarily unavailable. Please try again in a few moments."
+        );
+    }
+
+    /**
      * Fallback for Quiz Service
      */
     @GetMapping("/quizzes")

@@ -43,6 +43,18 @@ public class RouteProperties {
     );
 
     /**
+     * Category Service route configuration
+     * Routes to question-service as categories are managed there
+     */
+    private ServiceRoute categoryService = new ServiceRoute(
+            "/api/categories/**",
+            "http://localhost:8082",
+            "question-service",
+            "categoryServiceCircuitBreaker",
+            "/fallback/categories"
+    );
+
+    /**
      * Quiz Service route configuration
      */
     private ServiceRoute quizService = new ServiceRoute(

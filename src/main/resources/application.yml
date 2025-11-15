@@ -85,6 +85,15 @@ gateway:
       circuit-breaker-name: "questionServiceCircuitBreaker"
       fallback-path: "/fallback/questions"
 
+    # Category Service Configuration
+    # Routes to question-service as categories are managed there
+    category-service:
+      path: "/api/categories/**"
+      service-url: "http://localhost:8082"
+      service-name: "question-service"
+      circuit-breaker-name: "categoryServiceCircuitBreaker"
+      fallback-path: "/fallback/categories"
+
     # Quiz Service Configuration
     quiz-service:
       path: "/api/quizzes/**"
@@ -206,6 +215,11 @@ resilience4j:
         base-config: default
         register-health-indicator: true
 
+      # Category Service Circuit Breaker
+      categoryServiceCircuitBreaker:
+        base-config: default
+        register-health-indicator: true
+
       # Quiz Service Circuit Breaker
       quizServiceCircuitBreaker:
         base-config: default
@@ -220,6 +234,8 @@ resilience4j:
       authServiceCircuitBreaker:
         base-config: default
       questionServiceCircuitBreaker:
+        base-config: default
+      categoryServiceCircuitBreaker:
         base-config: default
       quizServiceCircuitBreaker:
         base-config: default
@@ -249,6 +265,8 @@ resilience4j:
       authServiceCircuitBreaker:
         base-config: default
       questionServiceCircuitBreaker:
+        base-config: default
+      categoryServiceCircuitBreaker:
         base-config: default
       quizServiceCircuitBreaker:
         base-config: default
