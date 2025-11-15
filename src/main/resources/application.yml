@@ -59,6 +59,50 @@ cors:
   # Cache preflight requests for 1 hour (in seconds)
   max-age: 3600
 
+# Gateway Request Limits Configuration
+# Protects against memory exhaustion and DoS attacks from large requests
+gateway:
+  request-limits:
+    # Maximum request size (default: 10MB)
+    # Requests larger than this will be rejected with 413 Payload Too Large
+    max-request-size: 10485760  # 10MB in bytes
+
+    # Maximum size for body logging (default: 1MB)
+    # Requests larger than this will only have metadata logged (not body content)
+    max-loggable-size: 1048576  # 1MB in bytes
+
+    # Maximum size for caching request/response bodies (default: 1MB)
+    # Bodies larger than this won't be cached in memory
+    max-cache-size: 1048576  # 1MB in bytes
+
+    # Enable request/response body caching (default: true)
+    # Set to false to disable all body caching and reduce memory usage
+    enable-body-caching: true
+
+    # Log request body content (default: false)
+    # Only applies to small requests (< max-loggable-size)
+    log-request-body: false
+
+    # Log response body content (default: false)
+    # Only applies to small responses (< max-loggable-size)
+    log-response-body: false
+
+    # Content types that should always be logged/cached regardless of size
+    # Useful for JSON APIs where you want to log all requests
+    always-log-content-types:
+      - "application/json"
+      - "application/xml"
+      - "text/plain"
+
+    # Content types that should never be cached/logged
+    # Useful for binary data like images, videos, files
+    never-log-content-types:
+      - "multipart/form-data"
+      - "application/octet-stream"
+      - "image/"
+      - "video/"
+      - "audio/"
+
 eureka:
   client:
     service-url:
