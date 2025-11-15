@@ -5,6 +5,27 @@ spring:
   application:
     name: api-gateway
 
+# CORS Configuration
+# Configure allowed origins for cross-origin requests
+cors:
+  # Use allowedOriginPatterns for development (supports wildcards)
+  # This allows any port on localhost (e.g., :5173, :5174, :3000)
+  allowed-origin-patterns:
+    - "http://localhost:[*]"
+    - "http://127.0.0.1:[*]"
+
+  # Use allowedOrigins for production (exact matches only)
+  # Uncomment and specify exact origins in production
+  # allowed-origins:
+  #   - "https://app.example.com"
+  #   - "https://www.example.com"
+
+  # Allow credentials (cookies, authorization headers)
+  allow-credentials: true
+
+  # Cache preflight requests for 1 hour (in seconds)
+  max-age: 3600
+
 eureka:
   client:
     service-url:
