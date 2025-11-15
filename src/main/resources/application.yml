@@ -59,9 +59,42 @@ cors:
   # Cache preflight requests for 1 hour (in seconds)
   max-age: 3600
 
-# Gateway Request Limits Configuration
-# Protects against memory exhaustion and DoS attacks from large requests
+# Gateway Configuration
 gateway:
+  # Route Configuration
+  # Configure service routing with optional Eureka service discovery
+  routes:
+    # Enable/disable Eureka service discovery for routing
+    # When true: uses lb://service-name (load balanced via Eureka)
+    # When false: uses direct service URLs
+    use-service-discovery: false
+
+    # Auth Service Configuration
+    auth-service:
+      path: "/api/auth/**"
+      service-url: "http://localhost:8081"  # Used when use-service-discovery = false
+      service-name: "auth-service"          # Used when use-service-discovery = true
+      circuit-breaker-name: "authServiceCircuitBreaker"
+      fallback-path: "/fallback/auth"
+
+    # Question Service Configuration
+    question-service:
+      path: "/api/questions/**"
+      service-url: "http://localhost:8082"
+      service-name: "question-service"
+      circuit-breaker-name: "questionServiceCircuitBreaker"
+      fallback-path: "/fallback/questions"
+
+    # Quiz Service Configuration
+    quiz-service:
+      path: "/api/quizzes/**"
+      service-url: "http://localhost:8083"
+      service-name: "quiz-service"
+      circuit-breaker-name: "quizServiceCircuitBreaker"
+      fallback-path: "/fallback/quizzes"
+
+  # Request Limits Configuration
+  # Protects against memory exhaustion and DoS attacks from large requests
   request-limits:
     # Maximum request size (default: 10MB)
     # Requests larger than this will be rejected with 413 Payload Too Large
@@ -103,15 +136,30 @@ gateway:
       - "video/"
       - "audio/"
 
+# Eureka Service Discovery Configuration
+# Set eureka.client.enabled=false to disable Eureka and use direct URLs
 eureka:
   client:
+    # Enable/disable Eureka service discovery
+    # Set to false when using direct service URLs (gateway.routes.use-service-discovery=false)
+    enabled: ${EUREKA_ENABLED:false}
+
+    # Eureka server URL (can be overridden via EUREKA_SERVER_URL environment variable)
     service-url:
       defaultZone: ${EUREKA_SERVER_URL:http://localhost:8761/eureka/}
-    register-with-eureka: true
-    fetch-registry: true
+
+    # Register this gateway with Eureka
+    register-with-eureka: ${EUREKA_REGISTER:true}
+
+    # Fetch service registry from Eureka
+    fetch-registry: ${EUREKA_FETCH_REGISTRY:true}
+
   instance:
-    prefer-ip-address: true
-    instance-id: ${spring.application.name}:${random.value}
+    # Prefer IP address for service registration
+    prefer-ip-address: ${EUREKA_PREFER_IP:true}
+
+    # Instance ID format
+    instance-id: ${spring.application.name}:${spring.application.instance_id:${random.value}}
 
 # Resilience4j Circuit Breaker Configuration
 # Protects backend services with circuit breaker pattern and automatic fallback

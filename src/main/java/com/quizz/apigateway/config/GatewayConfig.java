@@ -1,5 +1,7 @@
 package com.quizz.apigateway.config;
 
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.function.RouterFunction;
@@ -12,44 +14,67 @@ import static org.springframework.cloud.gateway.server.mvc.predicate.GatewayRequ
 
 /**
  * Gateway route configuration with Circuit Breaker protection
- * Each route is protected by a circuit breaker with fallback endpoints
+ * Routes can be configured via properties to use either:
+ * - Service Discovery (Eureka): lb://service-name
+ * - Direct URLs: http://host:port
+ *
+ * All routing parameters are externalized to application.yml via RouteProperties
  */
+@Slf4j
 @Configuration
+@RequiredArgsConstructor
 public class GatewayConfig {
+
+    private final RouteProperties routeProperties;
 
     /**
      * Auth Service route with circuit breaker
-     * Fallback: /fallback/auth when service is unavailable
+     * Target URI and all parameters configured via properties
      */
     @Bean
     public RouterFunction<ServerResponse> authServiceRoute() {
+        RouteProperties.ServiceRoute config = routeProperties.getAuthService();
+        String targetUri = config.getTargetUri(routeProperties.isUseServiceDiscovery());
+
+        log.info("Configuring Auth Service route: {} -> {}", config.getPath(), targetUri);
+
         return route("auth_service")
-                .route(path("/api/auth/**"), http("lb://auth-service"))
-                .filter(circuitBreaker("authServiceCircuitBreaker", "/fallback/auth"))
+                .route(path(config.getPath()), http(targetUri))
+                .filter(circuitBreaker(config.getCircuitBreakerName(), config.getFallbackPath()))
                 .build();
     }
 
     /**
      * Question Service route with circuit breaker
-     * Fallback: /fallback/questions when service is unavailable
+     * Target URI and all parameters configured via properties
      */
     @Bean
     public RouterFunction<ServerResponse> questionServiceRoute() {
+        RouteProperties.ServiceRoute config = routeProperties.getQuestionService();
+        String targetUri = config.getTargetUri(routeProperties.isUseServiceDiscovery());
+
+        log.info("Configuring Question Service route: {} -> {}", config.getPath(), targetUri);
+
         return route("question_service")
-                .route(path("/api/questions/**"), http("lb://question-service"))
-                .filter(circuitBreaker("questionServiceCircuitBreaker", "/fallback/questions"))
+                .route(path(config.getPath()), http(targetUri))
+                .filter(circuitBreaker(config.getCircuitBreakerName(), config.getFallbackPath()))
                 .build();
     }
 
     /**
      * Quiz Service route with circuit breaker
-     * Fallback: /fallback/quizzes when service is unavailable
+     * Target URI and all parameters configured via properties
      */
     @Bean
     public RouterFunction<ServerResponse> quizServiceRoute() {
+        RouteProperties.ServiceRoute config = routeProperties.getQuizService();
+        String targetUri = config.getTargetUri(routeProperties.isUseServiceDiscovery());
+
+        log.info("Configuring Quiz Service route: {} -> {}", config.getPath(), targetUri);
+
         return route("quiz_service")
-                .route(path("/api/quizzes/**"), http("lb://quiz-service"))
-                .filter(circuitBreaker("quizServiceCircuitBreaker", "/fallback/quizzes"))
+                .route(path(config.getPath()), http(targetUri))
+                .filter(circuitBreaker(config.getCircuitBreakerName(), config.getFallbackPath()))
                 .build();
     }
 }
