@@ -76,6 +76,7 @@ The Quiz application follows a microservices architecture pattern with service d
 ```yaml
 /api/auth/**        → auth-service (8081)
 /api/questions/**   → question-service (8082)
+/api/categories/**  → question-service (8082)
 /api/quizzes/**     → quiz-service (8083)
 ```
 
@@ -151,22 +152,31 @@ User {
 - **Repository**: https://github.com/justinGirot/quizz-question-service
 - **Technology**: Spring Boot 3.4, Spring Data JPA, Java 21
 - **Port**: 8082
-- **Database**: H2 (file-based: `./data/questions.db`)
+- **Database**: PostgreSQL (via Docker Compose: `questions_db`)
 - **Responsibilities**:
   - Question creation, retrieval, update, deletion (CRUD)
-  - Question categorization and tagging
+  - Category referential management (admin-only)
+  - Question workflow (DRAFT → PENDING → VALIDATED/REJECTED/ARCHIVED)
   - Question difficulty levels
-  - Question validation
-  - Bulk question import/export
+  - Question validation and sanitization
+  - Input security (XSS prevention with OWASP HTML Sanitizer)
 
 **Key Endpoints**:
-- `POST /api/questions` - Create question
+
+**Question Management** (All authenticated users):
+- `POST /api/questions` - Create question (starts as DRAFT)
 - `GET /api/questions/{id}` - Get question by ID
-- `GET /api/questions` - List questions (with filters)
+- `GET /api/questions` - List questions with filters (status[], categories[])
 - `PUT /api/questions/{id}` - Update question
-- `DELETE /api/questions/{id}` - Delete question
-- `GET /api/questions/random` - Get random questions
-- `GET /api/questions/category/{category}` - Get questions by category
+- `DELETE /api/questions/{id}` - Delete question (DRAFT only)
+
+**Category Management**:
+- `GET /api/categories/active` - Get active categories (all authenticated users)
+- `GET /api/categories` - Get all categories (admin only)
+- `GET /api/categories/{id}` - Get category by ID (admin only)
+- `POST /api/categories` - Create category (admin only)
+- `PUT /api/categories/{id}` - Update category (admin only)
+- `DELETE /api/categories/{id}` - Delete category (admin only)
 
 **Data Model**:
 ```java
