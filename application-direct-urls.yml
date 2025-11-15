@@ -1,0 +1,33 @@
+# Example configuration for running gateway WITHOUT Eureka
+# Use this profile when you want to route directly to service URLs
+#
+# Usage: ./mvnw spring-boot:run -Dspring-boot.run.profiles=direct-urls
+# Or: java -jar api-gateway.jar --spring.profiles.active=direct-urls
+
+# Disable Eureka service discovery
+eureka:
+  client:
+    enabled: false
+    register-with-eureka: false
+    fetch-registry: false
+
+# Configure gateway to use direct URLs instead of service discovery
+gateway:
+  routes:
+    use-service-discovery: false
+
+    # All service URLs can be overridden here or via environment variables
+    auth-service:
+      service-url: ${AUTH_SERVICE_URL:http://localhost:8081}
+
+    question-service:
+      service-url: ${QUESTION_SERVICE_URL:http://localhost:8082}
+
+    quiz-service:
+      service-url: ${QUIZ_SERVICE_URL:http://localhost:8083}
+
+# Logging configuration (optional)
+logging:
+  level:
+    com.quizz.apigateway: DEBUG
+    org.springframework.cloud.gateway: DEBUG

@@ -4,7 +4,7 @@ This document describes the overall architecture of the Quiz application microse
 
 ## Architecture Overview
 
-The Quiz application follows a microservices architecture pattern with the following components:
+The Quiz application follows a microservices architecture pattern with service discovery:
 
 ```
 ┌─────────────┐
@@ -16,21 +16,35 @@ The Quiz application follows a microservices architecture pattern with the follo
        │
 ┌──────▼──────────────┐
 │   API Gateway       │ (Spring Cloud Gateway)
-│   (Port 8080)       │
-└──────┬──────────────┘
-       │
-       ├─────────────────┬─────────────────┬──────────────────┐
-       │                 │                 │                  │
-┌──────▼──────┐  ┌──────▼──────┐  ┌──────▼──────┐  ┌────────▼────────┐
-│Auth Service │  │Question Svc │  │  Quiz Svc   │  │  Future Services│
-│ (Port 8081) │  │ (Port 8082) │  │ (Port 8083) │  │                 │
-└─────────────┘  └─────────────┘  └─────────────┘  └─────────────────┘
-       │                 │                 │
-┌──────▼──────┐  ┌──────▼──────┐  ┌──────▼──────┐
-│   H2 DB     │  │   H2 DB     │  │   H2 DB     │
-│  (File)     │  │  (File)     │  │  (File)     │
-└─────────────┘  └─────────────┘  └─────────────┘
+│   (Port 8080)       │ ─────┐
+└──────┬──────────────┘      │
+       │                     │ Service Discovery
+       │                     │
+       ├─────────┬───────────┼─────────┬──────────┐
+       │         │           │         │          │
+┌──────▼──────┐  │   ┌───────▼────────┐│          │
+│Auth Service │  │   │ Eureka Server  ││          │
+│ (Port 8081) │──┘   │  (Port 8761)   ││          │
+└─────────────┘      └────────────────┘│          │
+       │                     ▲          │          │
+┌──────▼──────┐              │  ┌───────▼──────┐  │  ┌────────────────┐
+│   H2 DB     │      Register│  │Question Svc  │──┘  │  Quiz Svc      │
+│  (File)     │              │  │ (Port 8082)  │     │  (Port 8083)   │
+└─────────────┘              │  └──────┬───────┘     └────────┬───────┘
+                             │         │                      │
+                             └─────────┘              ┌───────▼──────┐
+                                     ┌────────────────┤   H2 DB      │
+                             ┌───────▼──────┐         │  (File)      │
+                             │   H2 DB      │         └──────────────┘
+                             │  (File)      │
+                             └──────────────┘
 ```
+
+**Key Components**:
+- **Eureka Server** (8761): Service registry and discovery
+- **API Gateway** (8080): Routes requests and discovers services via Eureka
+- **Microservices** (8081-8083): Register with Eureka at startup
+- **Frontend** (5174): Communicates only with API Gateway
 
 ## Services
 
@@ -65,7 +79,42 @@ The Quiz application follows a microservices architecture pattern with the follo
 /api/quizzes/**     → quiz-service (8083)
 ```
 
-### 3. Auth Service (quizz-auth-service)
+### 3. Eureka Server (quizz-eureka-server)
+- **Repository**: https://github.com/justinGirot/quizz-eureka-server
+- **Technology**: Spring Boot 3.4, Spring Cloud Netflix Eureka Server, Java 21
+- **Port**: 8761
+- **Responsibilities**:
+  - Service registry and discovery
+  - Service health monitoring
+  - Dynamic service instance tracking
+  - Load balancing support
+  - Service metadata management
+
+**Key Features**:
+- Services register themselves at startup
+- API Gateway discovers services dynamically
+- Heartbeat-based health checking
+- Web dashboard for service monitoring
+
+**Configuration**:
+```yaml
+eureka:
+  client:
+    register-with-eureka: false  # Eureka doesn't register with itself
+    fetch-registry: false
+  server:
+    enable-self-preservation: false  # Disabled in development
+```
+
+**Dashboard Access**: `http://localhost:8761`
+
+**Registered Services**:
+- api-gateway
+- auth-service
+- question-service
+- quiz-service
+
+### 4. Auth Service (quizz-auth-service)
 - **Repository**: https://github.com/justinGirot/quizz-auth-service
 - **Technology**: Spring Boot 3.4, Spring Security, Spring Data JPA, Java 21
 - **Port**: 8081

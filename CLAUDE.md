@@ -19,14 +19,23 @@ Each service has its own H2 database and communicates via REST APIs. The gateway
 
 ### Routing Configuration
 
-The gateway uses Spring Cloud Netflix Eureka for service discovery and routes requests as follows:
+The gateway supports **two routing modes** configured via `gateway.routes.use-service-discovery`:
+
+**1. Service Discovery Mode (Eureka)** - Default, `use-service-discovery: true`:
 ```
-/api/auth/**       → lb://auth-service      (service discovery)
-/api/questions/**  → lb://question-service  (service discovery)
-/api/quizzes/**    → lb://quiz-service      (service discovery)
+/api/auth/**       → lb://auth-service      (load balanced via Eureka)
+/api/questions/**  → lb://question-service  (load balanced via Eureka)
+/api/quizzes/**    → lb://quiz-service      (load balanced via Eureka)
 ```
 
-Each route is protected by Resilience4j circuit breaker with automatic fallback endpoints.
+**2. Direct URL Mode** - `use-service-discovery: false`:
+```
+/api/auth/**       → http://localhost:8081  (direct connection)
+/api/questions/**  → http://localhost:8082  (direct connection)
+/api/quizzes/**    → http://localhost:8083  (direct connection)
+```
+
+All routing parameters (paths, URLs, service names, circuit breaker names, fallback paths) are externalized to `application.yml` via `RouteProperties` for flexible configuration. Each route is protected by Resilience4j circuit breaker with automatic fallback endpoints.
 
 See ARCHITECTURE.md for complete system design, data models, and communication patterns.
 
@@ -86,7 +95,9 @@ See ARCHITECTURE.md for complete system design, data models, and communication p
 11. ✅ Time limiter for request timeout handling
 
 **Architecture Highlights**:
-- **Service Discovery**: Netflix Eureka client for dynamic service registration
+- **Flexible Routing**: Supports both Eureka service discovery and direct URL routing
+- **Property-Based Configuration**: All routing parameters externalized to application.yml
+- **Optional Service Discovery**: Netflix Eureka client (can be disabled for direct routing)
 - **Fault Tolerance**: Circuit breaker pattern with configurable thresholds (50% failure rate)
 - **Security**: Comprehensive security headers and request validation
 - **Observability**: Correlation IDs, structured logging, actuator endpoints
@@ -108,19 +119,40 @@ See ARCHITECTURE.md for complete system design, data models, and communication p
 ## Gateway Implementation Guidelines
 
 ### Route Configuration
-Routes are configured in `GatewayConfig.java` using RouterFunction beans with:
+Routes are configured via properties (`RouteProperties`) and built in `GatewayConfig.java` using RouterFunction beans:
+
+**Property-Based Configuration** (`application.yml`):
+```yaml
+gateway:
+  routes:
+    use-service-discovery: true  # Toggle between Eureka and direct URLs
+    auth-service:
+      path: "/api/auth/**"
+      service-url: "http://localhost:8081"  # Direct URL (when use-service-discovery=false)
+      service-name: "auth-service"          # Eureka service name (when use-service-discovery=true)
+      circuit-breaker-name: "authServiceCircuitBreaker"
+      fallback-path: "/fallback/auth"
+```
+
+**Dynamic Route Building** (`GatewayConfig.java`):
 - **Path predicates**: Pattern matching for routing (e.g., `/api/auth/**`)
-- **Service discovery URIs**: Load-balanced URIs using `lb://` prefix (e.g., `lb://auth-service`)
-- **Circuit breaker filters**: Resilience4j circuit breakers with fallback paths
-- **Client-side load balancing**: Automatic distribution across service instances
+- **Service URIs**: Dynamically selected based on `use-service-discovery`:
+  - `true`: Load-balanced via Eureka (`lb://service-name`)
+  - `false`: Direct URL (`http://localhost:8081`)
+- **Circuit breaker filters**: Resilience4j circuit breakers with configurable fallback paths
+- **Client-side load balancing**: Automatic distribution across service instances (when using Eureka)
+- **Environment variables**: All route parameters can be overridden via environment variables
 
 Example:
 ```java
 @Bean
 public RouterFunction<ServerResponse> authServiceRoute() {
+    RouteProperties.ServiceRoute config = routeProperties.getAuthService();
+    String targetUri = config.getTargetUri(routeProperties.isUseServiceDiscovery());
+
     return route("auth_service")
-            .route(path("/api/auth/**"), http("lb://auth-service"))
-            .filter(circuitBreaker("authServiceCircuitBreaker", "/fallback/auth"))
+            .route(path(config.getPath()), http(targetUri))
+            .filter(circuitBreaker(config.getCircuitBreakerName(), config.getFallbackPath()))
             .build();
 }
 ```
@@ -190,16 +222,45 @@ When making changes, consider impact on:
 
 ## Configuration Notes
 
+### Basic Configuration
 - **Port**: 8080 (must not conflict with backend services on 8081-8083)
-- **Eureka Server**: Defaults to `http://localhost:8761/eureka/` (configurable via `EUREKA_SERVER_URL`)
 - **Profiles**: Use Spring profiles (dev, prod) for environment-specific config
-- **Actuator Endpoints**:
-  - `/actuator/health` - Health status with circuit breaker details
-  - `/actuator/circuitbreakers` - Circuit breaker status
-  - `/actuator/circuitbreakerevents` - Circuit breaker events
-- **Service Discovery**: Services register with Eureka using their spring.application.name
-- **Configuration Files**:
-  - `application.yml` - Main configuration
-  - `CorsProperties` - CORS settings (prefix: `cors`)
-  - `SecurityHeadersProperties` - Security headers (prefix: `security.headers`)
-  - `RequestLimitProperties` - Size limits (prefix: `gateway.request-limits`)
+
+### Routing Configuration
+- **Service Discovery Mode**: Set `gateway.routes.use-service-discovery: true` (default)
+  - Routes via Eureka: `lb://service-name`
+  - Requires Eureka server to be running
+- **Direct URL Mode**: Set `gateway.routes.use-service-discovery: false`
+  - Routes to direct URLs: `http://localhost:8081`, etc.
+  - No Eureka server required
+  - Useful for development or simple deployments
+
+### Eureka Configuration (Optional)
+Environment variables for Eureka configuration:
+- `EUREKA_ENABLED`: Enable/disable Eureka client (default: `true`)
+- `EUREKA_SERVER_URL`: Eureka server URL (default: `http://localhost:8761/eureka/`)
+- `EUREKA_REGISTER`: Register with Eureka (default: `true`)
+- `EUREKA_FETCH_REGISTRY`: Fetch service registry (default: `true`)
+- `EUREKA_PREFER_IP`: Prefer IP address for registration (default: `true`)
+
+**Example**: Run without Eureka:
+```bash
+EUREKA_ENABLED=false ./mvnw spring-boot:run
+```
+or set in application.yml:
+```yaml
+gateway.routes.use-service-discovery: false
+eureka.client.enabled: false
+```
+
+### Actuator Endpoints
+- `/actuator/health` - Health status with circuit breaker details
+- `/actuator/circuitbreakers` - Circuit breaker status
+- `/actuator/circuitbreakerevents` - Circuit breaker events
+
+### Configuration Files & Properties
+- **`application.yml`** - Main configuration
+- **`RouteProperties`** - Route configuration (prefix: `gateway.routes`)
+- **`CorsProperties`** - CORS settings (prefix: `cors`)
+- **`SecurityHeadersProperties`** - Security headers (prefix: `security.headers`)
+- **`RequestLimitProperties`** - Size limits (prefix: `gateway.request-limits`)
