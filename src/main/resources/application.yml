@@ -94,6 +94,15 @@ gateway:
       circuit-breaker-name: "categoryServiceCircuitBreaker"
       fallback-path: "/fallback/categories"
 
+    # Referential Service Configuration (Question Service)
+    # Routes to question-service for referential data (categories, difficulty levels)
+    referential-service:
+      path: "/api/question/referentiel/**"
+      service-url: "http://localhost:8082"
+      service-name: "question-service"
+      circuit-breaker-name: "referentialServiceCircuitBreaker"
+      fallback-path: "/fallback/referentiel"
+
     # Quiz Service Configuration
     quiz-service:
       path: "/api/quizzes/**"
@@ -101,6 +110,14 @@ gateway:
       service-name: "quiz-service"
       circuit-breaker-name: "quizServiceCircuitBreaker"
       fallback-path: "/fallback/quizzes"
+
+    # Group Service Configuration
+    group-service:
+      path: "/api/groups/**"
+      service-url: "http://localhost:8084"
+      service-name: "group-service"
+      circuit-breaker-name: "groupServiceCircuitBreaker"
+      fallback-path: "/fallback/groups"
 
   # Request Limits Configuration
   # Protects against memory exhaustion and DoS attacks from large requests
@@ -220,8 +237,18 @@ resilience4j:
         base-config: default
         register-health-indicator: true
 
+      # Referential Service Circuit Breaker
+      referentialServiceCircuitBreaker:
+        base-config: default
+        register-health-indicator: true
+
       # Quiz Service Circuit Breaker
       quizServiceCircuitBreaker:
+        base-config: default
+        register-health-indicator: true
+
+      # Group Service Circuit Breaker
+      groupServiceCircuitBreaker:
         base-config: default
         register-health-indicator: true
 
@@ -237,7 +264,11 @@ resilience4j:
         base-config: default
       categoryServiceCircuitBreaker:
         base-config: default
+      referentialServiceCircuitBreaker:
+        base-config: default
       quizServiceCircuitBreaker:
+        base-config: default
+      groupServiceCircuitBreaker:
         base-config: default
 
   # Retry Configuration (optional - can retry before circuit opens)
@@ -268,7 +299,11 @@ resilience4j:
         base-config: default
       categoryServiceCircuitBreaker:
         base-config: default
+      referentialServiceCircuitBreaker:
+        base-config: default
       quizServiceCircuitBreaker:
+        base-config: default
+      groupServiceCircuitBreaker:
         base-config: default
 
 management:

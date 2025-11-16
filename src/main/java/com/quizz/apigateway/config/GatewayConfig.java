@@ -80,6 +80,24 @@ public class GatewayConfig {
     }
 
     /**
+     * Referential Service route with circuit breaker
+     * Routes to question-service for referential data (categories, difficulty levels)
+     * Target URI and all parameters configured via properties
+     */
+    @Bean
+    public RouterFunction<ServerResponse> referentialServiceRoute() {
+        RouteProperties.ServiceRoute config = routeProperties.getReferentialService();
+        String targetUri = config.getTargetUri(routeProperties.isUseServiceDiscovery());
+
+        log.info("Configuring Referential Service route: {} -> {}", config.getPath(), targetUri);
+
+        return route("referential_service")
+                .route(path(config.getPath()), http(targetUri))
+                .filter(circuitBreaker(config.getCircuitBreakerName(), config.getFallbackPath()))
+                .build();
+    }
+
+    /**
      * Quiz Service route with circuit breaker
      * Target URI and all parameters configured via properties
      */
@@ -91,6 +109,23 @@ public class GatewayConfig {
         log.info("Configuring Quiz Service route: {} -> {}", config.getPath(), targetUri);
 
         return route("quiz_service")
+                .route(path(config.getPath()), http(targetUri))
+                .filter(circuitBreaker(config.getCircuitBreakerName(), config.getFallbackPath()))
+                .build();
+    }
+
+    /**
+     * Group Service route with circuit breaker
+     * Target URI and all parameters configured via properties
+     */
+    @Bean
+    public RouterFunction<ServerResponse> groupServiceRoute() {
+        RouteProperties.ServiceRoute config = routeProperties.getGroupService();
+        String targetUri = config.getTargetUri(routeProperties.isUseServiceDiscovery());
+
+        log.info("Configuring Group Service route: {} -> {}", config.getPath(), targetUri);
+
+        return route("group_service")
                 .route(path(config.getPath()), http(targetUri))
                 .filter(circuitBreaker(config.getCircuitBreakerName(), config.getFallbackPath()))
                 .build();

@@ -55,6 +55,18 @@ public class RouteProperties {
     );
 
     /**
+     * Referential Service route configuration
+     * Routes to question-service for referential data (categories, difficulty levels)
+     */
+    private ServiceRoute referentialService = new ServiceRoute(
+            "/api/question/referentiel/**",
+            "http://localhost:8082",
+            "question-service",
+            "referentialServiceCircuitBreaker",
+            "/fallback/referentiel"
+    );
+
+    /**
      * Quiz Service route configuration
      */
     private ServiceRoute quizService = new ServiceRoute(
@@ -63,6 +75,17 @@ public class RouteProperties {
             "quiz-service",
             "quizServiceCircuitBreaker",
             "/fallback/quizzes"
+    );
+
+    /**
+     * Group Service route configuration
+     */
+    private ServiceRoute groupService = new ServiceRoute(
+            "/api/groups/**",
+            "http://localhost:8084",
+            "group-service",
+            "groupServiceCircuitBreaker",
+            "/fallback/groups"
     );
 
     /**

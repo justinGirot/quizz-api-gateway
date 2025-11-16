@@ -85,6 +85,22 @@ public class FallbackController {
     }
 
     /**
+     * Fallback for Group Service
+     */
+    @GetMapping("/groups")
+    @PostMapping("/groups")
+    @PutMapping("/groups")
+    @DeleteMapping("/groups")
+    @PatchMapping("/groups")
+    public ResponseEntity<Map<String, Object>> groupServiceFallback() {
+        log.warn("Group service is currently unavailable - circuit breaker activated");
+        return createFallbackResponse(
+            "Group Service",
+            "The group service is temporarily unavailable. Please try again in a few moments."
+        );
+    }
+
+    /**
      * Generic fallback for any unhandled service
      */
     @GetMapping("/default")
